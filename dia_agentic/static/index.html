@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Integrity Analytics</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=11" />
+  <link rel="stylesheet" href="/static/theme-2026.css?v=2" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">DIA</div>
+      <div>
+        <div class="sb-logo-name">Digital Integrity Analytics</div>
+        <div class="sb-logo-sub">P2P Analytics</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-group-label">Workspace</div>
+      <a class="sb-link active" href="#uploadCard" onclick="startNewRun(); sbNav(this,'uploadCard')">
+        <span class="sb-icon">⌂</span> New analysis
+      </a>
+      <a class="sb-link sb-link-review" id="sbReviewLink" href="/results" onclick="return goToReview(event)" title="Run tests first to unlock review">
+        <span class="sb-icon">◫</span> Review queue
+      </a>
+      <div class="sb-group-label">Analysis workflow</div>
+      <a class="sb-link" href="#secMapping" onclick="sbNav(this,'secMapping')">
+        <span class="sb-icon">⇄</span> Schema Mapping
+      </a>
+      <a class="sb-link" href="#secTests" onclick="sbNav(this,'secTests')">
+        <span class="sb-icon">⊞</span> Analytics Tests
+      </a>
+      <a class="sb-link" href="#secResults" onclick="sbNav(this,'secResults')">
+        <span class="sb-icon">◎</span> Results
+      </a>
+      <div class="sb-divider"></div>
+      <div class="sb-group-label">Recent analyses</div>
+      <div class="sb-history" id="sbHistory"></div>
+    </nav>
+
+    <div class="sb-bottom">
+      <div class="sb-user-bar">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <div class="sb-avatar" id="sbAvatar">?</div>
+          <span class="sb-user-name" id="sbUsername">—</span>
+        </div>
+        <button class="sb-signout" onclick="logout()">Sign out</button>
+      </div>
+      <div id="sbRunInfo" class="sb-run-info" style="display:none">
+        <div class="sb-run-label">Current Run</div>
+        <div class="sb-run-id" id="sbRunId">—</div>
+        <div class="sb-run-file" id="sbRunFile">—</div>
+        <div class="sb-run-rows" id="sbRunRows"></div>
+      </div>
+      <button id="newRunBtn" onclick="startNewRun()" style="display:none;width:100%;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:7px;padding:7px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.color='#f87171';this.style.borderColor='#ef4444'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#334155'">↺ Start New Run</button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="topbar-title"><span>Digital Integrity Analytics</span><b>›</b><strong id="topbarTitle">New analysis</strong></div>
+      <div class="topbar-tools">
+        <label class="product-search">⌕ <input aria-label="Search workspace" placeholder="Search runs, tests, vendors…"><kbd>Ctrl K</kbd></label>
+        <span class="topbar-status"><i></i> Workspace secure</span>
+      </div>
+      <span id="statusMsg"></span>
+    </header>
+
+    <main>
+
+      <div class="analysis-intro">
+        <div>
+          <span class="ui-eyebrow">NEW ANALYSIS</span>
+          <h1>Analyse invoice data</h1>
+          <p>Upload an ERP export. DIA maps, profiles, and prepares it for intelligent control testing.</p>
+        </div>
+        <div class="analysis-steps">
+          <span class="active"><b>1</b> Upload</span><i></i>
+          <span><b>2</b> Map</span><i></i>
+          <span><b>3</b> Test</span><i></i>
+          <span><b>4</b> Review</span>
+        </div>
+      </div>
+
+      <!-- ── Section 1: Upload ── -->
+      <div class="analysis-stage">
+      <div class="card upload-card" id="uploadCard">
+        <div class="upload-card-head">
+          <div>
+            <span class="card-kicker">STEP 1 OF 4</span>
+            <div class="card-title">Upload invoice data</div>
+            <div class="card-sub">Drop your ERP export CSV. DIA will map it to the UDM and prepare your controls.</div>
+          </div>
+          <span class="upload-security">◇ Private workspace</span>
+        </div>
+
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="uz-icon">📂</div>
+          <div class="uz-hint" id="dropHint">Drop invoice data here, or click to browse</div>
+          <div class="uz-fname" id="dropName"></div>
+          <div class="upload-format">CSV files up to 250 MB</div>
+        </div>
+        <input type="file" id="fileInput" accept=".csv" style="display:none" />
+
+        <div class="upload-controls">
+          <label class="control-field">ERP source
+            <select id="erpType" class="form-select">
+              <option value="">Auto-detect ERP</option>
+              <option value="SAP">SAP</option>
+              <option value="Oracle">Oracle</option>
+              <option value="Tally">Tally</option>
+              <option value="Dynamics">Microsoft Dynamics</option>
+            </select>
+          </label>
+
+          <div class="toggle-wrap" onclick="toggleLLM()">
+            <div class="toggle" id="llmToggle"></div>
+            <span>AI mapping fallback</span>
+          </div>
+
+          <button class="btn-primary" id="runBtn" onclick="runValidation()">Validate &amp; Map</button>
+        </div>
+      </div>
+      <aside class="analysis-aside" aria-label="Upload guidance">
+        <section class="aside-panel">
+          <span class="card-kicker">READY TO ANALYSE</span>
+          <h2>A faster path from data to evidence.</h2>
+          <p>DIA profiles your population before any control runs, so you can verify data quality and mapping first.</p>
+          <ol class="analysis-checklist">
+            <li><i>✓</i> One invoice per row</li>
+            <li><i>✓</i> Headers in the first row</li>
+            <li><i>✓</i> Invoice and payment dates</li>
+            <li><i>✓</i> Amounts in consistent units</li>
+          </ol>
+        </section>
+        <section class="aside-panel aside-help">
+          <i>✦</i><div><strong>Need a template?</strong><span>Use a standard invoice export from your ERP.</span></div>
+        </section>
+      </aside>
+      </div>
+
+      <!-- ── Section 1b: Compare with previous ── -->
+      <div class="card" id="secCompare" style="display:none">
+        <div class="section-head" onclick="toggleSection(this)">
+          <span class="s-icon">⇄</span>
+          <span class="s-title">Compare with Previous Run</span>
+          <span class="s-meta">optional</span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body" style="display:none">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Upload a previous period's CSV to flag new, changed and removed invoices.</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="compareRunSelect" class="form-select">
+              <option value="">Compare against a previous run…</option>
+            </select>
+            <span style="color:var(--text-muted);font-size:12px">or</span>
+            <input type="file" id="compareFileInput" accept=".csv" class="form-select" style="cursor:pointer" />
+            <button class="btn-primary" onclick="runCompare()">Compare →</button>
+          </div>
+          <div id="compareResults" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+      <!-- ── Section 1c: Data Quality ── -->
+      <div class="card" id="secDQ" style="display:none">
+        <div class="section-head" onclick="toggleSection(this)">
+          <span class="s-icon">▦</span>
+          <span class="s-title">Data Quality</span>
+          <span class="s-meta" id="dqMeta"></span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body" style="display:none">
+          <div id="dqSummaryStrip" class="kpi-strip" style="margin-bottom:16px"></div>
+          <div id="dqCurrency" style="margin-bottom:14px"></div>
+          <table>
+            <thead><tr><th>Field</th><th>Filled %</th><th>Null Count</th><th>Quality</th><th>Notes</th></tr></thead>
+            <tbody id="dqBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Section 2: Schema Mapping ── -->
+      <div class="card" id="secMapping" style="display:none">
+        <div class="section-head open" onclick="toggleSection(this)">
+          <span class="s-icon">⇄</span>
+          <span class="s-title">Schema Mapping</span>
+          <span class="s-meta" id="mappingMeta"></span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div id="erpBanner" class="erp-banner" style="display:none"></div>
+          <table>
+            <thead><tr><th>Uploaded Column</th><th>Mapped To (UDM)</th><th>Method</th><th>Status</th></tr></thead>
+            <tbody id="mappingBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Section 3: Analytics Tests ── -->
+      <div class="card" id="secTests" style="display:none">
+        <div class="section-head open" onclick="toggleSection(this)">
+          <span class="s-icon">⊞</span>
+          <span class="s-title">Analytics Tests</span>
+          <span class="s-meta" id="testsMeta"></span>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="section-body">
+
+          <!-- Low-click test decision gate -->
+          <div class="test-gate" id="testGate">
+            <div class="test-gate-copy">
+              <span class="card-kicker">PREPARATION COMPLETE</span>
+              <h3 id="testGateTitle">Ready to test</h3>
+              <p id="testGateText">Choose one path. DIA will run the tests, calculate risk, build the review queue, and take you there automatically.</p>
+            </div>
+            <div class="test-gate-actions" id="testGateActions">
+              <button class="test-path test-path-primary" id="runCurrentPath" onclick="runCurrentTests()">
+                <strong>Run current tests</strong>
+                <span>Use all applicable approved tests</span>
+              </button>
+              <button class="test-path" onclick="showSuggestedTests()">
+                <strong>Suggest new tests</strong>
+                <span>See controls suited to these fields</span>
+              </button>
+              <button class="test-path" onclick="openTestBuilder()">
+                <strong>I'll add a test</strong>
+                <span>Describe a control in plain English</span>
+              </button>
+            </div>
+            <div id="mappingGateWarning" class="mapping-gate-warning" style="display:none">
+              <strong>Review inferred mappings first.</strong>
+              <span>DIA found mappings that need a quick human check before controls run.</span>
+              <button onclick="confirmMappings()">Mapping looks correct</button>
+            </div>
+            <div id="suggestedTests" class="suggested-tests" style="display:none"></div>
+          </div>
+
+          <!-- Pre-built tests -->
+          <div class="ai-label" style="margin-bottom:10px">BUILT-IN TESTS</div>
+          <div class="preset-grid" id="presetGrid"></div>
+
+          <div style="border-top:1px solid var(--border);margin:4px 0 16px"></div>
+
+          <!-- Saved library -->
+          <div class="ai-builder-toggle" style="border-color:var(--green);color:var(--green);background:rgba(5,150,105,.03)" onclick="toggleLibrary()">
+            <span style="font-size:15px">📚</span>
+            <span>From Saved Library</span>
+            <span style="margin-left:auto;font-size:12px;opacity:.7" id="libraryChevron">▾</span>
+          </div>
+          <div id="libraryPanel" style="display:none;border:1px solid var(--border);border-radius:10px;background:#fafbfc;padding:14px;margin-bottom:14px">
+            <div id="libraryList"><div class="hint-text">Loading…</div></div>
+          </div>
+
+          <!-- AI builder toggle -->
+          <div class="ai-builder-toggle" id="aiBuilderToggle" onclick="toggleAIBuilder()">
+            <span style="font-size:15px">✦</span>
+            <span>Add AI-Generated Test</span>
+            <span style="margin-left:auto;font-size:12px;opacity:.7" id="aiToggleChevron">▾</span>
+          </div>
+
+          <!-- AI builder panel -->
+          <div class="ai-builder-panel" id="aiBuilderPanel" style="display:none">
+            <div class="ai-label">Describe what you want to detect:</div>
+            <textarea class="ai-textarea" id="aiPrompt" placeholder='e.g. "Find vendors where the same person captured and authorized the invoice — segregation of duties violation"'></textarea>
+            <button class="btn-generate" id="generateBtn" onclick="generateTest()">
+              <span>✦</span> Generate Test
+            </button>
+            <div id="genStatus" class="hint-text" style="margin-top:8px"></div>
+          </div>
+
+          <!-- Generated test preview -->
+          <div class="gen-preview" id="genPreview" style="display:none">
+            <div class="gen-preview-head">
+              <span class="badge badge-ai">✦ AI GENERATED</span>
+              <span style="flex:1;font-size:13px;font-weight:700;color:#5b21b6;margin-left:6px" id="previewName"></span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-add" onclick="addGeneratedTest()">✓ Add to Tests</button>
+                <button class="btn-regen" onclick="saveCurrentTestToLibrary()" style="background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.3)">📚 Save to Library</button>
+                <button class="btn-regen" onclick="regenerateTest()">↻ Regenerate</button>
+                <button class="btn-discard" onclick="discardGenerated()">✕ Discard</button>
+              </div>
+            </div>
+            <div class="gen-preview-body">
+              <div id="previewWarnings" style="display:none"></div>
+              <div class="gen-field-label">What it detects:</div>
+              <div class="gen-field-value" id="previewDesc"></div>
+              <div class="gen-field-label">Explanation:</div>
+              <div class="gen-field-value" id="previewExplanation"></div>
+              <span class="code-toggle" onclick="togglePreviewCode(this)">Show Code ▾</span>
+              <div class="code-block" id="previewCode" style="display:none"></div>
+            </div>
+          </div>
+
+          <!-- My Tests chips -->
+          <div class="my-tests-wrap" id="myTestsWrap" style="display:none">
+            <div class="my-tests-label">Tests in this run — <span id="testsCount">0</span> selected</div>
+            <div class="chips" id="chipsContainer"></div>
+          </div>
+
+          <!-- Run button -->
+          <button class="btn-run-all" id="runAllBtn" onclick="runAllTests()" style="display:none">
+            ▶ Run All Tests
+          </button>
+          <div id="runStatus" class="hint-text" style="margin-top:8px;text-align:center"></div>
+
+        </div>
+      </div>
+
+      <!-- ── Section 4: Results ── -->
+      <div id="secResults" style="display:none">
+
+        <!-- KPI strip -->
+        <div class="kpi-strip" id="kpiStrip">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Hit Rows</div>
+            <div class="kpi-val" id="kpiHitRows">—</div>
+            <div class="kpi-sub">unique rows flagged</div>
+          </div>
+          <div class="kpi-card critical">
+            <div class="kpi-label">Critical</div>
+            <div class="kpi-val" id="kpiCritical">—</div>
+            <div class="kpi-sub">score 75–100</div>
+          </div>
+          <div class="kpi-card high">
+            <div class="kpi-label">High</div>
+            <div class="kpi-val" id="kpiHigh">—</div>
+            <div class="kpi-sub">score 50–74</div>
+          </div>
+          <div class="kpi-card medium">
+            <div class="kpi-label">Medium</div>
+            <div class="kpi-val" id="kpiMedium">—</div>
+            <div class="kpi-sub">score 25–49</div>
+          </div>
+          <div class="kpi-card low">
+            <div class="kpi-label">Low</div>
+            <div class="kpi-val" id="kpiLow">—</div>
+            <div class="kpi-sub">score 0–24</div>
+          </div>
+          <div class="kpi-card amount">
+            <div class="kpi-label">Amount at Risk</div>
+            <div class="kpi-val" id="kpiAmount">—</div>
+            <div class="kpi-sub">total flagged value</div>
+          </div>
+        </div>
+
+        <!-- Result cards -->
+        <div class="card" id="secResultCards">
+          <div class="section-head open" onclick="toggleSection(this)">
+            <span class="s-icon">◎</span>
+            <span class="s-title">Test Results</span>
+            <span class="s-meta" id="resultsMeta"></span>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <div id="resultCardsContainer"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/static/app.js?v=20"></script>
+</body>
+</html>

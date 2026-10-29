@@ -1,0 +1,27 @@
+{
+  "erp": "Tally",
+  "versions": ["Tally ERP 9", "TallyPrime"],
+  "module": "invoices",
+  "description": "Standard Tally AP Invoice field mappings",
+  "mappings": {
+    "Party Name":           "vendor_name",
+    "Party Ledger":         "vendor_name",
+    "Ledger Name":          "vendor_name",
+    "Voucher Number":       "system_invoice_no",
+    "Voucher No":           "system_invoice_no",
+    "Ref No":               "original_invoice_no",
+    "Bill Reference":       "ref_no",
+    "Date":                 "date_documented",
+    "Voucher Date":         "date_documented",
+    "Due Date":             "due_date",
+    "Narration":            "invoice_description",
+    "Amount":               "amount_incl_lc",
+    "Debit Amount":         "amount_incl_lc",
+    "Credit Amount":        "payment_amount",
+    "Tax Amount":           "amount_vat_lc",
+    "Taxable Amount":       "amount_excl_lc",
+    "Currency":             "reference_currency",
+    "Voucher Type":         "invoice_type",
+    "Company":              "company_code"
+  }
+}

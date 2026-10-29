@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Integrity Analytics</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=6" />
+  <link rel="stylesheet" href="/static/results.css?v=27" />
+  <link rel="stylesheet" href="/static/theme-2026.css?v=3" />
+</head>
+<body>
+<div class="rv-shell">
+  <aside class="product-sidebar">
+    <div class="product-brand">
+      <div class="product-mark">D</div>
+      <div><strong>Digital Integrity Analytics</strong><small>Continuous Controls</small></div>
+    </div>
+    <nav>
+      <span>Workspace</span>
+      <a href="/?new_run=1"><i>↥</i>New analysis</a>
+      <a class="active"><i>◫</i>Review queue<b id="rvQueueCount">—</b></a>
+      <a onclick="showLevel1Review()"><i>◆</i>Review<b id="rvLevel1Count">—</b></a>
+      <a onclick="setView('agent')"><i>✦</i>Agent Review</a>
+      <a onclick="showRiskPatterns()"><i>⌘</i>Risk patterns</a>
+      <a onclick="showInvoiceReview()"><i>☷</i>Invoice review</a>
+      <span>Manage</span>
+      <a onclick="goToTestLibrary()"><i>✦</i>Test library</a>
+      <a onclick="exportFindings('confirmed')"><i>▤</i>Findings & export</a>
+    </nav>
+    <div class="product-sidebar-foot">
+      <div class="monitor-state"><i></i><div><strong>Monitoring active</strong><small>Current run available</small></div></div>
+      <div class="product-user"><div class="sb-avatar" id="rvSidebarAvatar">?</div><div><strong id="rvSidebarUser">Reviewer</strong><small>Audit workspace</small></div></div>
+    </div>
+  </aside>
+  <div class="rv-main-wrap">
+
+  <!-- ── Top bar ── -->
+  <header class="rv-topbar">
+    <div class="rv-topbar-left">
+      <a href="/" class="rv-back rv-return-action"><span>←</span> Return to analysis</a>
+      <div class="rv-logo-mark">DIA</div>
+      <div>
+        <div class="rv-title">Results Review</div>
+        <div style="font-size:10px;color:#3d444d;text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-top:1px">P2P Analytics</div>
+      </div>
+      <select id="runSelect" class="rv-run-select" onchange="loadRun(this.value)">
+        <option value="">Select a run…</option>
+      </select>
+    </div>
+    <div class="rv-topbar-right">
+      <input type="file" id="rvPaymentFile" accept=".csv,text/csv" style="display:none" onchange="uploadPaymentCsv(this)">
+      <button class="rv-btn-secondary" id="rvPaymentButton" onclick="document.getElementById('rvPaymentFile').click()" title="Attach a payment export to this invoice run. Evidence only; scores and decisions will not change.">Attach payments</button>
+      <span id="rvPaymentStatus" role="status" style="font-size:11px;max-width:160px;white-space:normal"></span>
+      <div id="rvProgress" class="rv-progress-wrap" style="display:none">
+        <div class="rv-progress-bar-bg">
+          <div class="rv-progress-bar-fill" id="rvProgressFill"></div>
+        </div>
+        <span id="rvProgressLabel" class="rv-progress-label"></span>
+      </div>
+      <button class="rv-btn-secondary" id="bulkFpBtn" onclick="bulkAction('false_positive')" style="display:none">Mark FP</button>
+      <button class="rv-btn-primary" id="bulkConfirmBtn" onclick="bulkAction('confirmed')" style="display:none">Confirm Selected</button>
+      <div style="width:1px;height:20px;background:#21262d;margin:0 4px"></div>
+      <button class="rv-btn-secondary" onclick="exportFindings('confirmed')" title="Export confirmed findings as CSV">⬇ Export</button>
+      <button class="rv-btn-primary" id="findingBtn" onclick="generateFinding()" title="Create an audit finding from confirmed invoices">Generate Finding</button>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:8px;border-left:1px solid #21262d">
+        <div class="sb-avatar" id="rvAvatar" style="width:28px;height:28px;font-size:11px">?</div>
+        <span style="font-size:12px;font-weight:600;color:#e6edf3" id="rvUsername">—</span>
+        <button class="sb-signout" onclick="rvLogout()">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── KPI strip ── -->
+  <div class="rv-kpi-strip" id="rvKpiStrip" style="display:none">
+    <div class="rv-kpi rv-kpi-total">
+      <div class="rv-kpi-val" id="kpiTotal">—</div>
+      <div class="rv-kpi-label">Hit Rows</div>
+    </div>
+    <div class="rv-kpi rv-kpi-critical" onclick="filterBand('critical')">
+      <div class="rv-kpi-val" id="kpiCritical">—</div>
+      <div class="rv-kpi-label">Critical</div>
+    </div>
+    <div class="rv-kpi rv-kpi-high" onclick="filterBand('high')">
+      <div class="rv-kpi-val" id="kpiHigh">—</div>
+      <div class="rv-kpi-label">High</div>
+    </div>
+    <div class="rv-kpi rv-kpi-medium" onclick="filterBand('medium')">
+      <div class="rv-kpi-val" id="kpiMedium">—</div>
+      <div class="rv-kpi-label">Medium</div>
+    </div>
+    <div class="rv-kpi rv-kpi-low" onclick="filterBand('low')">
+      <div class="rv-kpi-val" id="kpiLow">—</div>
+      <div class="rv-kpi-label">Low</div>
+    </div>
+    <div class="rv-kpi-divider"></div>
+    <div class="rv-kpi rv-kpi-reviewed" onclick="filterStatus('pending')" title="Show pending reviews">
+      <div class="rv-kpi-val" id="kpiReviewedPct">—</div>
+      <div class="rv-kpi-label">Reviewed</div>
+    </div>
+    <div class="rv-kpi rv-kpi-confirmed" onclick="filterStatus('confirmed')" title="Show confirmed findings">
+      <div class="rv-kpi-val" id="kpiConfirmed">—</div>
+      <div class="rv-kpi-label">Confirmed</div>
+    </div>
+    <div class="rv-kpi rv-kpi-fp" onclick="filterStatus('false_positive')" title="Show dismissed findings">
+      <div class="rv-kpi-val" id="kpiFp">—</div>
+      <div class="rv-kpi-label">False +</div>
+    </div>
+    <div class="rv-kpi rv-kpi-amount">
+      <div class="rv-kpi-val" id="kpiAmountAtRisk">—</div>
+      <div class="rv-kpi-label">Unreviewed Amt</div>
+    </div>
+  </div>
+
+  <!-- ── Main view tabs ── -->
+  <nav class="rv-tabs" id="rvViewToggle" style="display:none" role="tablist">
+    <button class="rv-tab active" id="viewReviewBtn" role="tab" onclick="setView('level1')" title="Shortcut: Alt+1">
+      <span class="rv-tab-icon">◆</span>
+      <span class="rv-tab-text"><span class="rv-tab-title">Review</span><span class="rv-tab-sub">Decide pending invoices</span></span>
+      <span class="rv-tab-badge" id="tabBadgeReview">—</span>
+    </button>
+    <button class="rv-tab" id="viewClustersBtn" role="tab" onclick="setView('clusters')" title="Shortcut: Alt+2">
+      <span class="rv-tab-icon">◱</span>
+      <span class="rv-tab-text"><span class="rv-tab-title">Clusters</span><span class="rv-tab-sub">Risk patterns by test</span></span>
+      <span class="rv-tab-badge" id="tabBadgeClusters">—</span>
+    </button>
+    <button class="rv-tab" id="viewFlatBtn" role="tab" onclick="setView('flat')" title="Shortcut: Alt+3">
+      <span class="rv-tab-icon">☰</span>
+      <span class="rv-tab-text"><span class="rv-tab-title">All Rows</span><span class="rv-tab-sub">Every hit, filter &amp; bulk act</span></span>
+      <span class="rv-tab-badge" id="tabBadgeFlat">—</span>
+    </button>
+    <button class="rv-tab" id="viewAgentBtn" role="tab" onclick="setView('agent')" title="Shortcut: Alt+4">
+      <span class="rv-tab-icon">✦</span>
+      <span class="rv-tab-text"><span class="rv-tab-title">Agent Review</span><span class="rv-tab-sub">Prioritized investigations</span></span>
+      <span class="rv-tab-badge" id="tabBadgeAgent">—</span>
+    </button>
+  </nav>
+
+  <!-- ── Floating grounded chat copilot ── -->
+  <div class="rv-chat" id="rvChat" style="display:none">
+    <button class="rv-chat-launcher" id="rvChatLauncher" onclick="toggleChat()" aria-label="Open DIA Audit Copilot" aria-expanded="false">
+      <span class="rv-chat-launcher-icon">✦</span>
+      <span>Ask DIA</span>
+    </button>
+    <div class="rv-chat-backdrop" onclick="closeChat()" aria-hidden="true"></div>
+    <aside class="rv-chat-drawer" role="dialog" aria-modal="false" aria-labelledby="rvChatTitle">
+      <div class="rv-chat-head">
+        <div class="rv-chat-brand">D</div>
+        <div class="rv-chat-heading">
+          <strong id="rvChatTitle">DIA Audit Copilot</strong>
+          <span><i></i> Grounded in this analysis run</span>
+        </div>
+        <button class="rv-chat-icon-btn" onclick="toggleChatExpanded()" title="Expand chat" aria-label="Expand chat">⛶</button>
+        <button class="rv-chat-icon-btn" onclick="closeChat()" title="Close chat" aria-label="Close chat">×</button>
+      </div>
+      <div class="rv-chat-body" id="rvChatBody">
+        <div class="rv-chat-log" id="rvChatLog">
+          <div class="rv-chat-msg rv-chat-msg-bot">
+            <strong>How can I help with this run?</strong>
+            Ask about vendors, risk, evidence, patterns, or comparisons.
+            <div class="rv-chat-prompts">
+              <button onclick="askChat('Summarize this run')">Summarize this run</button>
+              <button onclick="askChat('Top 5 vendors by highest risk')">Highest-risk vendors</button>
+              <button onclick="askChat('What should I review first?')">What should I review first?</button>
+            </div>
+          </div>
+        </div>
+        <form class="rv-chat-form" onsubmit="submitChat(event)">
+          <input type="text" id="rvChatInput" class="rv-chat-input" placeholder="Ask a question about this run's results…" autocomplete="off" />
+          <button type="submit" class="rv-chat-send" id="rvChatSendBtn" aria-label="Send question">↑</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ── Cluster view ── -->
+  <div class="rv-cluster-view" id="rvClusterView" style="display:none">
+
+    <!-- Reviewer workbench summary -->
+    <div class="rv-workbench" id="rvWorkbench">
+      <div class="rv-wb-head">
+        <div>
+          <div class="rv-wb-eyebrow">Reviewer Workbench</div>
+          <div class="rv-wb-title">Daily exception review</div>
+        </div>
+        <div class="rv-wb-pill" id="rvWbMode">Pattern-first review</div>
+      </div>
+      <div class="rv-wb-grid" id="rvWorkbenchGrid"></div>
+    </div>
+
+    <!-- Deterministic smart summary -->
+    <div class="rv-triage" id="rvTriage">
+      <div class="rv-triage-head">
+        <div class="rv-triage-title">📋 Smart Summary</div>
+        <button class="rv-btn-primary rv-triage-btn" id="triageBtn" onclick="runTriage()">Refresh Summary</button>
+      </div>
+      <div class="rv-triage-body" id="rvTriageBody" style="display:none"></div>
+      <div class="rv-disclaimer" id="rvTriageDisclaimer" style="display:none"></div>
+    </div>
+
+    <!-- Suggested tests from emergent anomalies -->
+    <div class="rv-suggest" id="rvSuggest" style="display:none">
+      <div class="rv-suggest-head">
+        <div class="rv-suggest-title">✦ Suggested tests from anomalies</div>
+        <button class="rv-btn-secondary" id="suggestBtn" onclick="loadSuggestions()">Suggest tests</button>
+      </div>
+      <div class="rv-suggest-body" id="rvSuggestBody"></div>
+    </div>
+
+    <!-- Test overview strip -->
+    <div class="rv-test-overview" id="rvTestOverview"></div>
+
+    <!-- Section 1: Rules caught -->
+    <div class="rv-board-header">
+      <div>
+        <div class="rv-board-title">🛡 Rules caught</div>
+        <div class="rv-board-sub" id="rvBoardSub">grouped by anomaly pattern</div>
+      </div>
+      <div class="rv-groupby" id="rvGroupBy">
+        <span class="rv-groupby-lbl">Group by</span>
+        <button class="rv-gb-btn active" data-gb="signature" onclick="setGroupBy('signature')">Anomaly pattern</button>
+        <button class="rv-gb-btn" data-gb="vendor" onclick="setGroupBy('vendor')">Vendor</button>
+        <button class="rv-gb-btn" data-gb="value" onclick="setGroupBy('value')">Value band</button>
+        <button class="rv-gb-btn" data-gb="temporal" onclick="setGroupBy('temporal')">Weekend</button>
+        <button class="rv-gb-btn" data-gb="person" onclick="setGroupBy('person')">Approver</button>
+      </div>
+    </div>
+    <div class="rv-cluster-board" id="rvClusterBoard"></div>
+
+    <!-- Section 2: Also looks abnormal (emergent) -->
+    <div class="rv-board-header rv-board-header-emergent">
+      <div>
+        <div class="rv-board-title">🔎 Also looks abnormal</div>
+        <div class="rv-board-sub" id="rvEmergentSub">data-driven anomalies no rule flagged</div>
+      </div>
+    </div>
+    <div class="rv-cluster-board" id="rvEmergentBoard"></div>
+
+    <!-- Section 3: Connected risks across patterns -->
+    <div class="rv-board-header rv-board-header-linked" id="rvLinkedHeader" style="display:none">
+      <div>
+        <div class="rv-board-title">Connected across patterns</div>
+        <div class="rv-board-sub" id="rvLinkedSub">vendors and approvers recurring across independent signals</div>
+      </div>
+    </div>
+    <div class="rv-linked-board" id="rvLinkedBoard"></div>
+  </div>
+
+  <!-- ── Review queue: the reviewer's main page ── -->
+  <section class="rv-level1" id="rvLevel1" style="display:none">
+    <div class="rv-l1-hero">
+      <div>
+        <div class="rv-l1-eyebrow">DECISION QUEUE</div>
+        <h1>Review</h1>
+        <p>Deterministic rules pre-sort every flagged invoice so you only judge what needs judgement. Scores, tests and totals are unchanged — the router only queues.</p>
+      </div>
+      <div class="rv-l1-progress">
+        <strong id="rvLevel1ProgressText">—</strong>
+        <div class="rv-l1-progress-track"><span id="rvLevel1ProgressFill"></span></div>
+        <small>A accept · O override · J / K move · 1 / 2 / 3 switch lane</small>
+      </div>
+    </div>
+    <div class="rv-l1-status" id="rvLevel1Status"></div>
+    <div class="rv-l1-lanes" id="rvLevel1Lanes"></div>
+  </section>
+
+  <!-- ── Agent Review: separate workspace within results ── -->
+  <section class="rv-agent" id="rvAgent" style="display:none">
+    <div class="rv-agent-head">
+      <div>
+        <div class="rv-l1-eyebrow">LEVEL 1 · AGENT WORKSPACE</div>
+        <h1>Agent Review</h1>
+        <p>Investigates highest-risk pending invoices in small batches. Recommendations need your decision; only the strict low-risk policy auto-approves.</p>
+      </div>
+      <div class="rv-agent-controls">
+        <button class="rv-btn-primary" id="rvAgentRun5" onclick="runAgentBatch(5)">Review next 5</button>
+        <button class="rv-btn-secondary" id="rvAgentRun10" onclick="runAgentBatch(10)">Review next 10</button>
+      </div>
+    </div>
+    <div class="rv-agent-status" id="rvAgentStatus" role="status"></div>
+    <div class="rv-agent-overview" id="rvAgentOverview"></div>
+    <div class="rv-agent-guidance">
+      <strong>Needs Info is a hold, not an approval or rejection.</strong>
+      Check the evidence gap, obtain the source record outside DIA, then use Open evidence to save Confirm or False Positive with a note.
+      Earlier agent decisions are marked for recheck; DIA does not reverse them automatically.
+    </div>
+    <h2>Investigation briefs</h2>
+    <div class="rv-agent-filters">
+      <button class="active" data-agent-filter="all" onclick="filterAgentCases('all')">All briefs</button>
+      <button data-agent-filter="needs_info" onclick="filterAgentCases('needs_info')">Needs Info</button>
+      <button data-agent-filter="legacy" onclick="filterAgentCases('legacy')">Earlier decisions to recheck</button>
+    </div>
+    <div id="rvAgentCases" class="rv-agent-cases"></div>
+  </section>
+
+  <!-- ── 3-panel body (flat view) ── -->
+  <div class="rv-body" id="rvBody" style="display:none">
+
+    <!-- Left: Filters -->
+    <aside class="rv-filters" id="rvFilters" style="display:none">
+      <div class="rv-filter-title">Filters</div>
+      <button class="rv-clear-btn" onclick="clearFilters()">Clear All</button>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Risk Band</div>
+        <label class="rv-chip-label critical"><input type="checkbox" name="band" value="critical" onchange="applyFilters()"> Critical</label>
+        <label class="rv-chip-label high"><input type="checkbox" name="band" value="high" onchange="applyFilters()"> High</label>
+        <label class="rv-chip-label medium"><input type="checkbox" name="band" value="medium" onchange="applyFilters()"> Medium</label>
+        <label class="rv-chip-label low"><input type="checkbox" name="band" value="low" onchange="applyFilters()"> Low</label>
+      </div>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Review Status</div>
+        <label class="rv-chip-label"><input type="checkbox" name="status" value="pending" onchange="applyFilters()"> Pending</label>
+        <label class="rv-chip-label"><input type="checkbox" name="status" value="confirmed" onchange="applyFilters()"> Confirmed</label>
+        <label class="rv-chip-label"><input type="checkbox" name="status" value="false_positive" onchange="applyFilters()"> False Positive</label>
+        <label class="rv-chip-label"><input type="checkbox" name="status" value="needs_info" onchange="applyFilters()"> Needs Info</label>
+      </div>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Smart Filters</div>
+        <label class="rv-toggle-row"><input type="checkbox" id="overlapOnly" onchange="applyFilters()"> Multi-test overlap</label>
+      </div>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Tests</div>
+        <div id="testCheckboxes" class="rv-test-checks"></div>
+      </div>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Vendor</div>
+        <input type="text" id="vendorSearch" class="rv-input" placeholder="Name or number…" oninput="debounceFilters()">
+      </div>
+
+      <div class="rv-filter-group">
+        <div class="rv-filter-label">Amount Range</div>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="minAmount" class="rv-input" placeholder="Min">
+          <input type="number" id="maxAmount" class="rv-input" placeholder="Max">
+        </div>
+        <button class="rv-clear-btn" style="margin-top:6px" onclick="applyFilters()">Apply</button>
+      </div>
+    </aside>
+
+    <!-- Center: Hit list -->
+    <main class="rv-list-panel" id="rvListPanel" style="display:none">
+      <div class="rv-list-header">
+        <div class="rv-list-info">
+          <span id="rvListCount">—</span>
+          <span class="rv-list-hint">sorted by risk score</span>
+        </div>
+        <div class="rv-list-controls">
+          <label class="rv-toggle-row" style="font-size:12px">
+            <input type="checkbox" id="selectAllVisible" onchange="toggleSelectAll(this.checked)">
+            <span>Select page</span>
+          </label>
+        </div>
+      </div>
+      <div id="rvHitList" class="rv-hit-list"></div>
+      <div class="rv-pagination" id="rvPagination" style="display:none">
+        <button class="rv-page-btn" id="prevBtn" onclick="changePage(-1)">← Prev</button>
+        <span id="pageInfo" class="rv-page-info"></span>
+        <button class="rv-page-btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+      </div>
+    </main>
+
+    <!-- Right: Detail panel -->
+    <aside class="rv-detail" id="rvDetail">
+      <div class="rv-detail-empty" id="rvDetailEmpty">
+        <div class="rv-detail-empty-icon">◎</div>
+        <div>Select a row to review</div>
+        <div style="font-size:12px;opacity:.5;margin-top:4px">Click any row in the list</div>
+      </div>
+      <div id="rvDetailContent" style="display:none"></div>
+    </aside>
+
+  </div>
+
+  <!-- States -->
+  <div class="rv-empty" id="rvEmpty" style="display:none">
+    <div class="rv-empty-icon">📋</div>
+    <div>No run selected</div>
+    <div style="font-size:13px;opacity:.6;margin-top:6px">Run your tests first, then come back here to review</div>
+    <a href="/" class="rv-btn-primary" style="margin-top:16px;text-decoration:none;display:inline-block">Go to Upload</a>
+  </div>
+
+  <div class="rv-loading" id="rvLoading" style="display:none">
+    <div class="rv-spinner"></div>
+    <div>Loading results…</div>
+  </div>
+
+  </div>
+</div>
+
+<script src="/static/results.js?v=44"></script>
+</body>
+</html>

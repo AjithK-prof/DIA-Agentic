@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Integrity Analytics — Sign In</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=6" />
+  <link rel="stylesheet" href="/static/theme-2026.css?v=2" />
+</head>
+<body class="login-page">
+
+<aside class="login-showcase" aria-label="Digital Integrity Analytics product overview">
+  <div class="login-showcase-inner">
+    <div class="showcase-badge"><i></i> CONTINUOUS CONTROL MONITORING</div>
+    <h1>Turn invoice data into<br><em>decisions that matter.</em></h1>
+    <p>Map ERP data, build intelligent tests, connect anomaly patterns, and move from detection to documented findings.</p>
+    <div class="showcase-preview">
+      <div><span>Control health</span><strong>82</strong></div>
+      <div><span>Invoices analysed</span><strong>24,860</strong></div>
+      <div><span>Review complete</span><strong>68%</strong></div>
+    </div>
+    <small>Secure P2P analytics workspace</small>
+  </div>
+</aside>
+<main class="login-wrap">
+  <div class="login-logo">
+    <div class="login-logo-mark">DIA</div>
+    <div style="text-align:center">
+      <div class="login-logo-name">Digital Integrity Analytics</div>
+      <div class="login-logo-sub">P2P Invoice Analytics</div>
+    </div>
+  </div>
+
+  <div class="login-card">
+    <h1 class="login-card-title">Sign in to your account</h1>
+    <div class="login-card-sub">Enter your credentials to access the analytics platform.</div>
+
+    <div class="login-error" id="errorMsg"></div>
+
+    <form onsubmit="doLogin(event)">
+      <div class="login-field">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="username" required autofocus />
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required />
+      </div>
+      <button class="btn-login" type="submit" id="loginBtn">Sign In</button>
+    </form>
+  </div>
+
+  <div class="login-footer">Digital Integrity Analytics &nbsp;·&nbsp; P2P Fraud Analytics Platform</div>
+</main>
+
+<script>
+  const token = localStorage.getItem('dia_token');
+  if (token) {
+    fetch('/api/auth/me', { headers: { 'x-auth-token': token } })
+      .then(r => { if (r.ok) window.location.href = '/'; })
+      .catch(() => {});
+  }
+
+  async function doLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('errorMsg');
+    err.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in\u2026';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value.trim(),
+          password: document.getElementById('password').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+
+      localStorage.setItem('dia_token', data.token);
+      localStorage.setItem('dia_user', JSON.stringify({
+        username:     data.username,
+        display_name: data.display_name,
+      }));
+      window.location.href = '/';
+    } catch (ex) {
+      err.textContent = ex.message;
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: dia-agentic
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn dia_agentic.app:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: CLOUDFLARE_AUTH_TOKEN
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: TYPESAFE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_API_KEY_2
+        sync: false
+      - key: DIA_DEFAULT_USER
+        value: admin
+      - key: DIA_DEFAULT_PASSWORD
+        sync: false
+      - key: DIA_DEFAULT_DISPLAY
+        value: Administrator
